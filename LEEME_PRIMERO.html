@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Bienvenida · Kit de IA Local SNP — SEGEPLAN</title>
+<style>
+  :root{--ao:#192854;--az:#4993cc;--vd:#bbd000;--am:#fdd757;--gr:#c4bfb6}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+  body{background:#f4f6fa;color:#222;line-height:1.6}
+  header{background:var(--ao);color:#fff;padding:34px 20px;text-align:center;border-bottom:5px solid var(--vd)}
+  header h1{font-size:26px;margin-bottom:6px}
+  header p{color:#bcd0ee;font-size:14px}
+  .wrap{max-width:820px;margin:0 auto;padding:30px 20px 60px}
+  .regalo{background:#fff;border:1px solid #dfe4ef;border-left:5px solid var(--am);border-radius:10px;padding:18px 22px;margin-bottom:28px;font-size:15px}
+  h2{color:var(--ao);font-size:19px;margin:30px 0 14px;border-bottom:2px solid var(--vd);padding-bottom:6px}
+  .paso{display:flex;gap:16px;background:#fff;border:1px solid #dfe4ef;border-radius:12px;padding:18px 20px;margin-bottom:14px;align-items:flex-start}
+  .num{flex-shrink:0;width:40px;height:40px;border-radius:50%;background:var(--vd);color:var(--ao);font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center}
+  .paso h3{font-size:15.5px;color:var(--ao);margin-bottom:4px}
+  .paso p{font-size:14px;color:#444}
+  code{background:#eef1f8;border:1px solid #d5dcef;border-radius:5px;padding:2px 8px;font-family:Consolas,monospace;font-size:13px;color:var(--ao)}
+  table{width:100%;border-collapse:collapse;background:#fff;font-size:13.5px;margin-top:8px}
+  th{background:var(--ao);color:#fff;padding:9px 12px;text-align:left;font-size:13px}
+  td{padding:9px 12px;border:1px solid #e2e7f2;vertical-align:top}
+  tr:nth-child(even) td{background:#f6f8fc}
+  .pie{margin-top:40px;text-align:center;font-size:12.5px;color:#77809a}
+  .conf{display:inline-block;background:#eaf6ec;border:1px solid #bfe3c6;color:#256a33;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:600;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Su Copiloto de IA Local para la Planificación</h1>
+  <p>Kit del taller · Sprint 3 — Bootcamp DFCSNP · I Encuentro Nacional de Planificación 2026 · SEGEPLAN</p>
+  <span class="conf">🔒 Todo funciona sin internet · sus datos nunca salen de su computadora</span>
+</header>
+<div class="wrap">
+  <div class="regalo">
+    <b>Esta memoria USB es suya.</b> Contiene todo lo necesario para instalar en su computadora un asistente de inteligencia artificial especializado en el Sistema Nacional de Planificación: el instalador, los modelos de IA, los 20 documentos oficiales del SNP y la aplicación de consulta. Es el primer producto de pertenencia a la <b>Red Nacional de Planificadores</b>.
+  </div>
+
+  <h2>Instalación en 3 pasos</h2>
+  <div class="paso"><div class="num">1</div><div>
+    <h3>Ejecute el instalador automático</h3>
+    <p>Haga doble clic en <code>INSTALAR.bat</code> (en la raíz de esta USB). El script instala el motor de IA, copia los modelos, instala el Copiloto en su carpeta Documentos y crea el icono <b>«Copiloto SNP»</b> en su Escritorio. Tarda entre 5 y 10 minutos; no cierre la ventana negra hasta que indique <b>LISTO</b> — a partir de ese momento puede retirar la USB: todo queda en su equipo. Si Windows muestra una advertencia, elija «Más información → Ejecutar de todas formas».</p>
+  </div></div>
+  <div class="paso"><div class="num">2</div><div>
+    <h3>Cargue los documentos del SNP</h3>
+    <p>En la aplicación, verifique que el indicador superior derecho esté en <b style="color:#2e7d32">verde</b>. <b>Vía rápida:</b> pulse «⇩ Importar corpus» y seleccione el archivo <code>corpus_vectorizado.json</code> de la carpeta <code>3_Corpus_SNP</code> — en segundos tendrá los 20 documentos listos. (Alternativa: arrastre los PDF de esa carpeta a la zona de carga; la vectorización manual tarda unos minutos y se hace una sola vez.)</p>
+  </div></div>
+  <div class="paso"><div class="num">3</div><div>
+    <h3>Consulte a su copiloto</h3>
+    <p>Escriba su pregunta en el chat. La respuesta se genera en su propia computadora, citando el documento y la página de donde proviene la información. En el grafo verá iluminarse los documentos consultados y sus conexiones. En adelante, abra el Copiloto desde el icono de su Escritorio — la USB ya no es necesaria.</p>
+  </div></div>
+
+  <h2>Amplíe su copiloto (capa personal de conocimiento)</h2>
+  <p style="font-size:14px">La aplicación acepta cualquier PDF o archivo de texto adicional: cargue el PEI y el POA de su institución, normativa sectorial o diagnósticos territoriales, y su copiloto responderá también con base en ellos. Esa es la capa que convierte esta herramienta genérica en <b>su</b> asistente institucional — y todo permanece confidencial en su equipo.</p>
+
+  <h2>Si algo no funciona</h2>
+  <table>
+    <tr><th>Situación</th><th>Solución</th></tr>
+    <tr><td>El indicador sigue en rojo</td><td>Cierre la aplicación, vuelva a ejecutar <code>INSTALAR.bat</code> y espere a que indique LISTO. Si persiste, reinicie el equipo y ejecútelo de nuevo.</td></tr>
+    <tr><td>El antivirus bloquea el instalador</td><td>Autorice el archivo («Ejecutar de todas formas») o solicite apoyo a un facilitador del taller.</td></tr>
+    <tr><td>Las respuestas son lentas</td><td>Cierre navegadores con muchas pestañas y otras aplicaciones pesadas; es normal que un equipo de 8 GB tarde algunos segundos por respuesta.</td></tr>
+    <tr><td>Un PDF «no tiene texto extraíble»</td><td>Es un documento escaneado sin OCR; omítalo o solicite la versión digital.</td></tr>
+  </table>
+
+  <div class="pie">
+    Dirección de Fortalecimiento de Capacidades del Sistema Nacional de Planificación — DFCSNP<br>
+    Secretaría de Planificación y Programación de la Presidencia — SEGEPLAN · Guatemala, 2026
+  </div>
+</div>
+</body>
+</html>
