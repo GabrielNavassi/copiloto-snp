@@ -1,0 +1,7 @@
+Colocar en esta carpeta los siguientes documentos oficiales (PDF con texto seleccionable):
+
+  · Guia-Formulacion-Politicas-P.pdf
+  · Guia-General-de-Planificación-del-Desarrollo.pdf
+
+Nota: verificar que ningún PDF sea un escaneo sin OCR.
+El participante los cargará arrastrándolos a la aplicación.
