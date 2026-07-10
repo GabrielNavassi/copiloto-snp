@@ -1,0 +1,9 @@
+Colocar en esta carpeta los siguientes documentos oficiales (PDF con texto seleccionable):
+
+  · 6_CAJA_HERRAMIENTAS_PLANIFICACION_2026-2030_VF__20022025C.pdf
+  · Estrategia_de_articulacion_ODS_al_PND.pdf
+  · Guia_basica_para_la_construccioon_de_indicadores.pdf
+  · ODS_Metas_priorizadas.pdf
+
+Nota: verificar que ningún PDF sea un escaneo sin OCR.
+El participante los cargará arrastrándolos a la aplicación.
