@@ -1,0 +1,8 @@
+Colocar en esta carpeta los siguientes documentos oficiales (PDF con texto seleccionable):
+
+  · 8_Guia-Gestion-Programas-Proyectos-Inversion-Publica-Prestamos_2022.pdf
+  · 191125-Orientaciones-para-el-seguimieneto-y-evaluacion-de-la-CINR-en-Guatemala_27.pdf
+  · Guia-Orientadora-1.pdf
+
+Nota: verificar que ningún PDF sea un escaneo sin OCR.
+El participante los cargará arrastrándolos a la aplicación.
