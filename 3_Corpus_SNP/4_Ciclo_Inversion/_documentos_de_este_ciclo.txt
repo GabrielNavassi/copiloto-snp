@@ -1,0 +1,10 @@
+Colocar en esta carpeta los siguientes documentos oficiales (PDF con texto seleccionable):
+
+  · 6_Normas-SNIP.pdf
+  · 11_GUIA_FEPIP1.pdf
+  · 15_Marco-Conceptual-Sistema-Nacional-de-Inversion-Publica_2019.pdf
+  · 16_MATRIZ-PREINVERSION_2025.pdf
+  · 19_Politica_de_Preinversion1.pdf
+
+Nota: verificar que ningún PDF sea un escaneo sin OCR.
+El participante los cargará arrastrándolos a la aplicación.
