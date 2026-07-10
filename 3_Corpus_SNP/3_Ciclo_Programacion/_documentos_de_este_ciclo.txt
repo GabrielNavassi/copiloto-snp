@@ -1,0 +1,8 @@
+Colocar en esta carpeta los siguientes documentos oficiales (PDF con texto seleccionable):
+
+  · 12_GUIA_POM_POA_21022025_vf.pdf
+  · 13_Indicadores_de_las_PND_2024.pdf
+  · PEI-Consejos-Desarrollo-1.pdf
+
+Nota: verificar que ningún PDF sea un escaneo sin OCR.
+El participante los cargará arrastrándolos a la aplicación.
