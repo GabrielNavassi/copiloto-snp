@@ -1,0 +1,6 @@
+Colocar en esta carpeta los siguientes documentos oficiales (PDF con texto seleccionable):
+
+  · Guia_GpR_MINFIN_SEGEPLAN.pdf
+
+Nota: verificar que ningún PDF sea un escaneo sin OCR.
+El participante los cargará arrastrándolos a la aplicación.
