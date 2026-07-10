@@ -1,0 +1,9 @@
+INSTRUCCIONES PARA LA DSI — Preparación del kit maestro
+=========================================================
+Colocar en esta carpeta el instalador oficial de Ollama para Windows:
+
+  1. En un equipo con internet, visitar https://ollama.com/download/windows
+  2. Descargar OllamaSetup.exe
+  3. Copiarlo a esta carpeta (1_Instaladores) SIN cambiar el nombre.
+
+El script INSTALAR.bat lo ejecutará automáticamente en modo silencioso.
