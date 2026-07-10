@@ -1,0 +1,20 @@
+CORPUS PRE-VECTORIZADO (ahorra 15-30 minutos por equipo)
+=========================================================
+Cómo generarlo (lo hace el facilitador UNA vez, en su equipo ya configurado):
+
+  1. Abrir Copiloto_SNP.html con los 20 documentos ya cargados y vectorizados.
+  2. Pulsar el botón "⇧ Exportar corpus".
+  3. Copiar el archivo descargado (corpus_vectorizado.json) a ESTA carpeta
+     (3_Corpus_SNP) de la USB maestra antes de replicarla.
+
+Cómo lo usa el asistente en el taller:
+
+  1. Abrir el Copiloto (indicador verde).
+  2. Pulsar "⇩ Importar corpus" y seleccionar corpus_vectorizado.json de la USB.
+  3. En segundos, los 20 documentos quedan listos para consultar,
+     sin esperar la vectorización.
+
+Los PDF de las subcarpetas se mantienen en la USB como respaldo, para
+consulta directa y para quien prefiera cargarlos manualmente.
+Nota técnica: el archivo solo es compatible con el modelo de embeddings
+del kit (nomic-embed-text), que es el que instala INSTALAR.bat.
