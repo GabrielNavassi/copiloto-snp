@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Copiloto SNP — IA Local · SEGEPLAN</title>
+<script src="libs/d3.min.js"></script>
+<script src="libs/pdf.min.js"></script>
+<style>
+  :root{
+    --azul-oscuro:#192854; --azul:#4993cc; --verde:#bbd000;
+    --amarillo:#fdd757; --gris:#c4bfb6;
+    --bg:#0c1226; --panel:#121a36; --panel2:#1a2447; --texto:#e8ecf5;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+  body{background:var(--bg);color:var(--texto);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+  header{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--azul-oscuro);border-bottom:2px solid var(--verde);flex-shrink:0}
+  .logo{width:34px;height:34px;border-radius:8px;background:var(--verde);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--azul-oscuro);font-size:15px}
+  header h1{font-size:15px;font-weight:700}
+  header .sub{font-size:11px;color:#9fb3d9}
+  #conn{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:11px;padding:5px 12px;border-radius:20px;font-weight:600;border:1px solid}
+  #conn.ok{background:#10301c;border-color:#2e7d32;color:#7ee08a}
+  #conn.bad{background:#36141a;border-color:#7d2e3a;color:#ff8a9a}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor;animation:pul 1.6s infinite}
+  @keyframes pul{50%{opacity:.35}}
+  select{background:var(--panel2);color:var(--texto);border:1px solid #2c3a6b;border-radius:8px;padding:5px 8px;font-size:12px;max-width:180px}
+
+  main{display:flex;flex:1;min-height:0}
+
+  /* ---- paneles colapsables ---- */
+  .panel{display:flex;flex-direction:column;min-height:0;transition:width .25s ease;position:relative}
+  .panel-head{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel2);border-bottom:1px solid #243059;flex-shrink:0}
+  .panel-head h2{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--verde);flex:1;white-space:nowrap;overflow:hidden}
+  .panel-head small{color:#7e8cb0;font-size:10.5px;text-transform:none;letter-spacing:0;font-weight:400}
+  .icobtn{background:transparent;border:1px solid #2c3a6b;color:#9fb3d9;border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:12px;line-height:1;flex-shrink:0}
+  .icobtn:hover{border-color:var(--azul);color:#fff}
+  .tira{display:none;flex-direction:column;align-items:center;gap:10px;padding-top:12px;width:100%;height:100%;cursor:pointer}
+  .tira .rot{writing-mode:vertical-rl;font-size:10.5px;letter-spacing:1.5px;color:#8093bd;text-transform:uppercase}
+  .colapsado{width:38px !important;min-width:38px !important}
+  .colapsado .panel-body,.colapsado .panel-head{display:none}
+  .colapsado .tira{display:flex}
+  .colapsado .tira:hover .rot{color:var(--verde)}
+
+  #panelDocs{width:300px;min-width:250px;background:var(--panel);border-right:1px solid #243059}
+  #panelChat{flex:1;background:#0e1530;min-width:280px}
+  #panelGrafo{width:44%;min-width:320px;background:var(--panel);border-left:1px solid #243059}
+  #panelGrafo.maximizado{width:64%}
+  .panel-body{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+
+  /* documentos */
+  #docsBody{padding:12px 14px;overflow-y:auto}
+  #drop{border:1.5px dashed #2c3a6b;border-radius:10px;padding:14px;text-align:center;font-size:12px;color:#9fb3d9;cursor:pointer;transition:all .2s}
+  #drop:hover,#drop.over{border-color:var(--verde);color:var(--texto);background:#16224a}
+  #docsList{margin-top:8px;font-size:11.5px}
+  .docItem{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:5px 8px;background:#101838;border-radius:6px;margin-bottom:4px;color:#cfd9ee;flex-wrap:wrap}
+  .miniSel{background:#0a1020;border:1px solid #2c3a6b;color:#9fb3d9;border-radius:5px;font-size:9.5px;padding:1px 2px;max-width:110px}
+  .miniSel:hover{border-color:var(--azul)}
+  .docItem .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .docItem .c{color:var(--verde);font-size:10.5px;flex-shrink:0}
+  .docItem .x{color:#ff8a9a;cursor:pointer;flex-shrink:0;font-weight:700;padding:0 3px}
+  #prog{height:5px;background:#101838;border-radius:3px;margin-top:8px;overflow:hidden;display:none}
+  #progBar{height:100%;width:0;background:var(--verde);transition:width .2s}
+  #progTxt{font-size:11px;color:#9fb3d9;margin-top:4px;display:none}
+  .btn-sec{background:transparent;border:1px solid #2c3a6b;color:#9fb3d9;font-size:11px;padding:5px 10px;border-radius:7px;cursor:pointer}
+  .btn-sec:hover{border-color:var(--azul);color:#fff}
+
+  /* chat */
+  #chatBody{padding:12px 16px}
+  #msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-height:0;padding:2px}
+  .msg{max-width:92%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  .msg.u{align-self:flex-end;background:var(--azul-oscuro);border:1px solid var(--azul);border-bottom-right-radius:3px}
+  .msg.a{align-self:flex-start;background:var(--panel2);border:1px solid #2c3a6b;border-bottom-left-radius:3px}
+  .msg.a .fuentes{margin-top:8px;padding-top:7px;border-top:1px solid #2c3a6b;font-size:10.5px;color:var(--amarillo)}
+  .msg.sys{align-self:center;background:transparent;color:#7e8cb0;font-size:11.5px;text-align:center;font-style:italic}
+  #entrada{display:flex;gap:8px;padding-top:10px;flex-shrink:0}
+  #q{flex:1;background:var(--panel2);border:1px solid #2c3a6b;border-radius:10px;color:var(--texto);padding:10px 12px;font-size:13px;resize:none;height:44px;font-family:inherit}
+  #q:focus{outline:none;border-color:var(--verde)}
+  #enviar{background:var(--verde);color:var(--azul-oscuro);border:none;border-radius:10px;padding:0 16px;font-weight:700;font-size:13px;cursor:pointer}
+  #enviar:disabled{opacity:.4;cursor:not-allowed}
+
+  /* grafo (estilo artefacto) */
+  #grafoBody{position:relative}
+  svg{width:100%;height:100%;display:block;cursor:grab}
+  svg:active{cursor:grabbing}
+  .leyenda{position:absolute;bottom:10px;left:12px;display:flex;gap:12px;font-size:10.5px;color:#9fb3d9;background:rgba(12,18,38,.85);padding:6px 12px;border-radius:18px;border:1px solid #243059;flex-wrap:wrap;max-width:95%}
+  .leyenda span{display:flex;align-items:center;gap:5px}
+  .pt{width:10px;height:10px;border-radius:50%}
+  .nodo{cursor:pointer}
+  .nodo text{pointer-events:none;user-select:none}
+  .arista{stroke-opacity:.5}
+  .atenuado{opacity:.12;transition:opacity .4s}
+  .ruta{stroke:var(--verde) !important;stroke-opacity:1 !important;stroke-width:3.5px !important;stroke-dasharray:8 6;animation:flujo 1s linear infinite}
+  .arista-temp{stroke:var(--amarillo);stroke-width:2.4px;stroke-opacity:.95;stroke-dasharray:6 5;animation:flujo 1s linear infinite;pointer-events:none}
+  @keyframes flujo{to{stroke-dashoffset:-14}}
+  .anillo-pulso{fill:none;stroke:var(--amarillo);stroke-width:2.5;opacity:0;pointer-events:none}
+  .cargado{stroke:var(--verde) !important;stroke-width:3px !important}
+
+  /* overlay de configuración */
+  #setup{position:fixed;inset:0;background:rgba(8,12,28,.93);display:none;align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(3px)}
+  #setup.show{display:flex}
+  .card{width:560px;max-width:92%;max-height:88%;overflow-y:auto;background:var(--panel);border:1px solid var(--azul);border-radius:14px;padding:24px 28px}
+  .card h3{color:var(--amarillo);font-size:16px;margin-bottom:6px}
+  .card p{font-size:12.5px;color:#bcc8e4;line-height:1.6;margin-bottom:12px}
+  .card ol{margin:0 0 12px 18px;font-size:12.5px;color:#dfe7f6;line-height:1.7}
+  .card code{background:#0a1020;border:1px solid #2c3a6b;border-radius:5px;padding:2px 7px;font-family:Consolas,monospace;font-size:12px;color:var(--verde);user-select:all}
+  .card .cierra{margin-top:6px;background:var(--azul);border:none;color:#fff;padding:8px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">IA</div>
+  <div>
+    <h1 id="tituloApp">Copiloto SNP · Entorno de IA Local</h1>
+    <div class="sub">Red Nacional de Planificadores · DFCSNP — SEGEPLAN</div>
+  </div>
+  <select id="modelo" title="Modelo de lenguaje local"></select>
+  <div id="conn" class="bad"><span class="dot"></span><span id="connTxt">Sin conexión con Ollama</span></div>
+</header>
+<main>
+  <!-- ==================== PANEL: MIS DOCUMENTOS ==================== -->
+  <section class="panel" id="panelDocs">
+    <div class="tira" onclick="togglePanel('panelDocs',false)"><button class="icobtn">▶</button><span class="rot">Mis documentos de contexto</span></div>
+    <div class="panel-head">
+      <h2>Mis documentos de contexto <small id="statChunks">0 fragmentos</small></h2>
+      <button class="icobtn" title="Ocultar panel" onclick="togglePanel('panelDocs',true)">◀</button>
+    </div>
+    <div class="panel-body" id="docsBody">
+      <div id="drop">Arrastre aquí los documentos del SNP <b>o los suyos propios</b><br><span style="font-size:10.5px;color:#5e6c92">(PDF, .txt, .md · sus documentos aparecen como nueva capa en el grafo · todo se procesa en este equipo)</span></div>
+      <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md" style="display:none">
+      <div id="prog"><div id="progBar"></div></div>
+      <div id="progTxt"></div>
+      <div id="docsList"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn-sec" id="importarBtn" style="border-color:var(--verde);color:var(--verde)" title="Cargar documentos ya vectorizados (corpus_vectorizado.json de la USB)">⇩ Importar contexto</button>
+        <button class="btn-sec" id="exportarBtn" title="Descargar sus documentos vectorizados para compartir o respaldar">⇧ Exportar contexto</button>
+        <button class="btn-sec" id="borrarTodo">Vaciar</button>
+        <button class="btn-sec" id="verSetup">Configuración</button>
+      </div>
+      <input type="file" id="importInput" accept=".json" style="display:none">
+    </div>
+  </section>
+
+  <!-- ==================== PANEL: DIÁLOGO ==================== -->
+  <section class="panel" id="panelChat">
+    <div class="panel-head">
+      <h2>Consulta al modelo local</h2>
+      <button class="icobtn" id="limpiarBtn" title="Limpiar la conversación (no borra sus documentos)" style="width:auto;padding:0 8px">🧹 Limpiar</button>
+    </div>
+    <div class="panel-body" id="chatBody">
+      <div id="msgs">
+        <div class="msg sys">Cargue o importe documentos y formule una pregunta.
+La respuesta se genera íntegramente en su equipo.</div>
+      </div>
+      <div id="entrada">
+        <textarea id="q" placeholder="Ej.: ¿Cómo se formula el POA según la guía?"></textarea>
+        <button id="enviar">➤</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PANEL: GRAFO (artefacto) ==================== -->
+  <section class="panel" id="panelGrafo">
+    <div class="tira" onclick="togglePanel('panelGrafo',false)"><button class="icobtn">◀</button><span class="rot">Grafo de conocimiento</span></div>
+    <div class="panel-head">
+      <button class="icobtn" title="Ocultar grafo" onclick="togglePanel('panelGrafo',true)">▶</button>
+      <h2 style="text-align:left">Grafo de conocimiento</h2>
+      <button class="icobtn" id="maxBtn" title="Ampliar / restaurar">⤢</button>
+    </div>
+    <div class="panel-body" id="grafoBody">
+      <svg id="svg"></svg>
+      <div class="leyenda">
+        <span><span class="pt" style="background:var(--verde)"></span> S&E (transversal)</span>
+        <span><span class="pt" style="background:var(--azul-oscuro);border:2px solid var(--verde)"></span> Ciclos</span>
+        <span><span class="pt" style="background:var(--amarillo)"></span> Docs SNP</span>
+        <span><span class="pt" style="background:#e8ecf5;border:2px solid var(--azul)"></span> Capa institucional</span>
+        <span><span class="pt" style="background:var(--amarillo);border-radius:0;height:3px;margin-top:4px"></span> Relación directa (consulta)</span>
+      </div>
+    </div>
+  </section>
+
+  <div id="setup">
+    <div class="card">
+      <h3>Configuración del entorno local (una sola vez)</h3>
+      <p><b>Opción rápida (kit USB):</b> cierre esta ventana y ejecute <code>INSTALAR.bat</code> en la raíz de la memoria USB; hará todo automáticamente. Si prefiere la instalación manual:</p>
+      <ol>
+        <li>Descargue e instale Ollama desde <b>ollama.com</b> (Windows).</li>
+        <li>Abra el <b>Símbolo del sistema</b> (cmd) y descargue el modelo de lenguaje:<br><code>ollama pull llama3.2:3b</code><br><span style="color:#7e8cb0">— con 16 GB de RAM puede usar uno mayor: <code>ollama pull llama3.1:8b</code></span></li>
+        <li>Descargue el modelo de embeddings (vectorización):<br><code>ollama pull nomic-embed-text</code></li>
+        <li>Autorice a esta aplicación a comunicarse con Ollama. En cmd ejecute:<br><code>setx OLLAMA_ORIGINS "*"</code><br>y luego <b>cierre y vuelva a abrir Ollama</b> (icono en la bandeja del sistema → Quit, y abrirlo de nuevo).</li>
+        <li>Recargue esta página. El indicador del encabezado debe cambiar a verde.</li>
+      </ol>
+      <p style="font-size:11.5px;color:#7e8cb0">Nota: el paso 4 solo permite que páginas locales de su propio equipo usen Ollama; el modelo sigue sin acceso a internet y sus documentos no salen de la computadora.</p>
+      <button class="cierra" id="cerrarSetup">Entendido</button>
+    </div>
+  </div>
+</main>
+<script>
+/* ══════════════════════════════════════════════════════
+   NOMBRE DEL COPILOTO — edite esta línea cuando definan
+   el nombre oficial (p. ej. 'Katún' o el avatar Patricia)
+   ══════════════════════════════════════════════════════ */
+const NOMBRE_COPILOTO = 'Copiloto SNP';
+document.getElementById('tituloApp').textContent = NOMBRE_COPILOTO + ' · Entorno de IA Local';
+document.title = NOMBRE_COPILOTO + ' — IA Local · SEGEPLAN';
+
+const OLLAMA = 'http://localhost:11434';
+const EMBED_MODEL = 'nomic-embed-text';
+const C = {azulOscuro:'#192854', azul:'#4993cc', verde:'#bbd000', amarillo:'#fdd757', gris:'#c4bfb6'};
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'libs/pdf.worker.min.js';
+
+/* ---------- paneles colapsables con preferencia recordada ---------- */
+const UIKEY='copiloto_ui_v3';
+function leerUI(){ try{return JSON.parse(localStorage.getItem(UIKEY))||{};}catch(e){return{};} }
+function guardarUI(u){ try{localStorage.setItem(UIKEY,JSON.stringify(u));}catch(e){} }
+function togglePanel(id, colapsar){
+  const p=document.getElementById(id);
+  p.classList.toggle('colapsado', colapsar);
+  const u=leerUI(); u[id]=colapsar; guardarUI(u);
+  setTimeout(recentrar, 280);
+}
+document.getElementById('maxBtn').onclick=()=>{
+  const p=document.getElementById('panelGrafo');
+  p.classList.toggle('maximizado');
+  const u=leerUI(); u.grafoMax=p.classList.contains('maximizado'); guardarUI(u);
+  setTimeout(recentrar, 280);
+};
+(function restaurarUI(){
+  const u=leerUI();
+  if(u.panelDocs) document.getElementById('panelDocs').classList.add('colapsado');
+  if(u.panelGrafo) document.getElementById('panelGrafo').classList.add('colapsado');
+  if(u.grafoMax) document.getElementById('panelGrafo').classList.add('maximizado');
+})();
+
+/* ---------- datos canónicos del SNP ---------- */
+const ciclos = [
+  {id:'PP', nombre:'Ciclo de Política Pública'},
+  {id:'PD', nombre:'Ciclo de Planificación'},
+  {id:'PR', nombre:'Ciclo de Programación'},
+  {id:'IP', nombre:'Ciclo de Inversión'},
+  {id:'CI', nombre:'Ciclo de Cooperación para el Desarrollo'},
+  {id:'PRB', nombre:'Ciclo de Presupuesto'},
+];
+const docsCanon = [
+  {id:'d1', nombre:'Guía Formulación de Políticas Públicas', ciclo:'PP', kw:[['formulacion','politicas']]},
+  {id:'d2', nombre:'Guía General de Planificación del Desarrollo', ciclo:'PP', kw:[['general','planificacion','desarrollo']]},
+  {id:'d3', nombre:'Caja de Herramientas 2026–2030', ciclo:'PD', kw:[['caja','herramientas']]},
+  {id:'d4', nombre:'Estrategia articulación ODS al PND', ciclo:'PD', kw:[['articulacion','ods']]},
+  {id:'d5', nombre:'Guía básica de indicadores', ciclo:'PD', kw:[['construccioon']]},
+  {id:'d6', nombre:'ODS – Metas priorizadas', ciclo:'PD', kw:[['metas','priorizadas']]},
+  {id:'d7', nombre:'Guía POM – POA', ciclo:'PR', kw:[['guia','pom','poa'],['12_guia']]},
+  {id:'d8', nombre:'Indicadores de las PND 2024', ciclo:'PR', kw:[['indicadores','pnd'],['13_indicadores']]},
+  {id:'d9', nombre:'PEI – Consejos de Desarrollo', ciclo:'PR', kw:[['pei','consejos']]},
+  {id:'d10', nombre:'Normas SNIP', ciclo:'IP', kw:[['normas','snip']]},
+  {id:'d11', nombre:'Guía FEPIP', ciclo:'IP', kw:[['fepip']]},
+  {id:'d12', nombre:'Marco Conceptual del SNIP', ciclo:'IP', kw:[['marco','conceptual','inversion']]},
+  {id:'d13', nombre:'Matriz de Preinversión 2025', ciclo:'IP', kw:[['matriz','preinversion']]},
+  {id:'d14', nombre:'Política de Preinversión', ciclo:'IP', kw:[['politica','preinversion']]},
+  {id:'d15', nombre:'Guía Gestión Proyectos con Préstamos', ciclo:'CI', kw:[['prestamos']]},
+  {id:'d16', nombre:'Orientaciones S&E de la CINR', ciclo:'CI', kw:[['cinr'],['191125']]},
+  {id:'d17', nombre:'Guía Orientadora', ciclo:'CI', kw:[['orientadora']]},
+  {id:'d18', nombre:'Guía GpR MINFIN–SEGEPLAN', ciclo:'PRB', kw:[['gpr','minfin']]},
+  {id:'d19', nombre:'Guía básica de indicadores (S&E)', ciclo:'SE', kw:[['construccion','indicadores']]},
+  {id:'d20', nombre:'Desplegable del SNP', ciclo:'SE', kw:[['desplegable']]},
+];
+function norm(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+function matchDoc(fname){
+  const f = norm(fname);
+  for(const d of docsCanon){
+    for(const grupo of d.kw){ if(grupo.length&&grupo.every(k=>f.includes(k))) return d; }
+  }
+  return null;
+}
+
+const baseNodes = [
+  {id:'SE', tipo:'centro', nombre:'Seguimiento y Evaluación', ciclo:'SE'},
+  ...ciclos.map(c=>({id:c.id, tipo:'ciclo', nombre:c.nombre})),
+  ...docsCanon.map(d=>({id:d.id, tipo:'doc', nombre:d.nombre, ciclo:d.ciclo})),
+];
+const baseLinks = [
+  ...ciclos.map(c=>({source:'SE', target:c.id, tipo:'trans'})),
+  ...docsCanon.map(d=>({source:d.ciclo==='SE'?'SE':d.ciclo, target:d.id, tipo:'doc'})),
+  {source:'PP',target:'PD',tipo:'inter'},{source:'PD',target:'PR',tipo:'inter'},
+  {source:'PR',target:'PRB',tipo:'inter'},{source:'IP',target:'CI',tipo:'inter'},
+  {source:'CI',target:'PRB',tipo:'inter'},{source:'PP',target:'CI',tipo:'inter'},
+];
+let nodes = [...baseNodes];
+let links = [...baseLinks];
+
+/* ---------- render del grafo ---------- */
+const svg = d3.select('#svg'), grafoBody = document.getElementById('grafoBody');
+let W = grafoBody.clientWidth||600, H = grafoBody.clientHeight||500;
+const g = svg.append('g');
+svg.call(d3.zoom().scaleExtent([.35,2.5]).on('zoom', e=>g.attr('transform', e.transform)));
+
+const sim = d3.forceSimulation(nodes)
+  .force('link', d3.forceLink(links).id(d=>d.id)
+    .distance(l=>l.tipo==='trans'?150:l.tipo==='doc'?85:210)
+    .strength(l=>l.tipo==='inter'?.03:.5))
+  .force('charge', d3.forceManyBody().strength(d=>d.tipo==='centro'?-800:d.tipo==='ciclo'?-560:-140))
+  .force('center', d3.forceCenter(W/2,H/2))
+  .force('collide', d3.forceCollide(d=>d.tipo==='centro'?58:d.tipo==='ciclo'?46:26));
+
+const linkG = g.append('g');
+const tempG = g.append('g');
+const nodeG = g.append('g');
+let linkSel = linkG.selectAll('line');
+let nodoSel = nodeG.selectAll('g.nodo');
+let tempSel = null, tempPairs = [];
+
+const dragger = d3.drag()
+  .on('start',(e,d)=>{if(!e.active)sim.alphaTarget(.25).restart();d.fx=d.x;d.fy=d.y;})
+  .on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y;})
+  .on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;});
+
+function construirNodo(sel){
+  sel.append('circle')
+    .attr('class', d=>'circ-'+d.id)
+    .attr('r', d=>d.tipo==='centro'?42:d.tipo==='ciclo'?32:9)
+    .attr('fill', d=>d.tipo==='centro'?C.verde:d.tipo==='ciclo'?(d.id==='INST'?C.azul:C.azulOscuro):d.tipo==='docUser'?'#e8ecf5':C.amarillo)
+    .attr('stroke', d=>d.tipo==='centro'?C.azulOscuro:d.tipo==='ciclo'?(d.id==='INST'?'#ffffff':C.verde):d.tipo==='docUser'?C.azul:C.azulOscuro)
+    .attr('stroke-width', d=>(d.tipo==='doc'||d.tipo==='docUser')?1.5:3);
+  sel.filter(d=>d.tipo==='centro'||d.tipo==='ciclo').append('text')
+    .attr('text-anchor','middle').attr('fill',d=>d.tipo==='centro'?C.azulOscuro:'#fff')
+    .attr('font-size',d=>d.tipo==='centro'?10:8.6).attr('font-weight',700)
+    .each(function(d){
+      const palabras=(d.tipo==='centro'?'SEGUIMIENTO Y EVALUACIÓN':d.nombre.replace('Ciclo de ','')).split(' ');
+      const lineas=[];let l='';
+      palabras.forEach(w=>{if((l+' '+w).trim().length>13){lineas.push(l.trim());l=w;}else l+=' '+w;});
+      lineas.push(l.trim());
+      const y0=-(lineas.length-1)*5.2;
+      lineas.forEach((t,i)=>d3.select(this).append('tspan').attr('x',0).attr('y',y0+i*10.4+3).text(t));
+    });
+  sel.filter(d=>d.tipo==='doc'||d.tipo==='docUser').append('text')
+    .attr('text-anchor','middle').attr('dy',20)
+    .attr('fill',d=>d.tipo==='docUser'?'#cfe0f2':'#aab8da')
+    .attr('font-size',7.6).attr('font-style',d=>d.tipo==='docUser'?'italic':null)
+    .text(d=>d.nombre.length>26?d.nombre.slice(0,24)+'…':d.nombre);
+  return sel;
+}
+function refreshGraph(){
+  linkSel = linkG.selectAll('line')
+    .data(links, l=>((l.source.id||l.source)+'|'+(l.target.id||l.target)))
+    .join('line')
+    .attr('class','arista')
+    .attr('stroke', l=>l.tipo==='trans'?C.verde:l.tipo==='doc'?C.azul:C.gris)
+    .attr('stroke-width', l=>l.tipo==='trans'?2.2:l.tipo==='doc'?1.2:1)
+    .attr('stroke-dasharray', l=>l.tipo==='inter'?'4 5':null);
+  nodoSel = nodeG.selectAll('g.nodo')
+    .data(nodes, d=>d.id)
+    .join(
+      enter=>construirNodo(enter.append('g').attr('class','nodo').call(dragger)),
+      update=>update,
+      exit=>exit.remove()
+    );
+  sim.nodes(nodes);
+  sim.force('link').links(links);
+  sim.alpha(.45).restart();
+}
+refreshGraph();
+
+function actualizarTemporales(){
+  if(tempSel) tempSel
+    .attr('x1',p=>p[0].x).attr('y1',p=>p[0].y)
+    .attr('x2',p=>p[1].x).attr('y2',p=>p[1].y);
+}
+sim.on('tick',()=>{
+  linkSel.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+  nodoSel.attr('transform',d=>`translate(${d.x},${d.y})`);
+  actualizarTemporales();
+});
+function recentrar(){
+  W=grafoBody.clientWidth||W; H=grafoBody.clientHeight||H;
+  sim.force('center', d3.forceCenter(W/2,H/2)).alpha(.3).restart();
+}
+window.addEventListener('resize', recentrar);
+if(window.ResizeObserver) new ResizeObserver(recentrar).observe(grafoBody);
+
+/* ---- Capa institucional ---- */
+function sincronizarCapaInstitucional(){
+  nodes = nodes.filter(n=>!n.dinamico);
+  links = links.filter(l=>!l.dinamico);
+  const propios = DOCS.filter(d=>d.user);
+  const se = nodes.find(n=>n.id==='SE');
+  const cx = (se&&se.x)?se.x:W/2, cy = (se&&se.y)?se.y:H/2;
+
+  /* documentos asignados a un ciclo oficial => nodo amarillo del ciclo */
+  const oficiales = propios.filter(d=>d.ciclo && d.ciclo!=='INST');
+  oficiales.forEach((d,i)=>{
+    const corto = d.name.replace(/\.(pdf|txt|md)$/i,'');
+    const padre = nodes.find(n=>n.id===d.ciclo);
+    const px = (padre&&padre.x)?padre.x:cx, py = (padre&&padre.y)?padre.y:cy;
+    nodes.push({id:d.nodeId, tipo:'doc', nombre:corto, ciclo:d.ciclo, dinamico:true,
+                x:px+34+i*12, y:py+70+(i%3)*12});
+    links.push({source:d.ciclo==='SE'?'SE':d.ciclo, target:d.nodeId, tipo:'doc', dinamico:true});
+  });
+
+  /* documentos sin asignar => capa institucional */
+  const institucionales = propios.filter(d=>!d.ciclo || d.ciclo==='INST');
+  if(institucionales.length){
+    nodes.push({id:'INST', tipo:'ciclo', nombre:'Capa Institucional', ciclo:'INST', dinamico:true, x:cx+50, y:cy+120});
+    links.push({source:'SE', target:'INST', tipo:'trans', dinamico:true});
+    institucionales.forEach((d,i)=>{
+      const corto = d.name.replace(/\.(pdf|txt|md)$/i,'');
+      nodes.push({id:d.nodeId, tipo:'docUser', nombre:corto, ciclo:'INST', dinamico:true,
+                  x:cx+90+i*16, y:cy+170+(i%3)*14});
+      links.push({source:'INST', target:d.nodeId, tipo:'doc', dinamico:true});
+    });
+  }
+  refreshGraph();
+}
+
+/* ---------- IndexedDB ---------- */
+function abrirDB(){return new Promise((res,rej)=>{
+  const r=indexedDB.open('raggraph_snp',1);
+  r.onupgradeneeded=e=>{const db=e.target.result;
+    if(!db.objectStoreNames.contains('chunks'))db.createObjectStore('chunks',{keyPath:'id'});
+    if(!db.objectStoreNames.contains('docs'))db.createObjectStore('docs',{keyPath:'key'});};
+  r.onsuccess=e=>res(e.target.result); r.onerror=()=>rej(r.error);
+});}
+async function idbAll(store){const db=await abrirDB();return new Promise((res,rej)=>{
+  const t=db.transaction(store).objectStore(store).getAll();
+  t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error);});}
+async function idbPut(store,objs){const db=await abrirDB();return new Promise((res,rej)=>{
+  const tx=db.transaction(store,'readwrite'),st=tx.objectStore(store);
+  objs.forEach(o=>st.put(o)); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);});}
+async function idbClear(){const db=await abrirDB();return new Promise((res,rej)=>{
+  const tx=db.transaction(['chunks','docs'],'readwrite');
+  tx.objectStore('chunks').clear(); tx.objectStore('docs').clear();
+  tx.oncomplete=res; tx.onerror=()=>rej(tx.error);});}
+async function idbDelDoc(key){const db=await abrirDB();const todos=await idbAll('chunks');
+  return new Promise((res,rej)=>{const tx=db.transaction(['chunks','docs'],'readwrite');
+    const st=tx.objectStore('chunks');
+    todos.filter(c=>c.docKey===key).forEach(c=>st.delete(c.id));
+    tx.objectStore('docs').delete(key);
+    tx.oncomplete=res; tx.onerror=()=>rej(tx.error);});}
+
+/* ---------- estado ---------- */
+let CHUNKS = [];
+let DOCS = [];
+
+function refrescarUI(){
+  document.getElementById('statChunks').textContent = CHUNKS.length+' fragmentos';
+  const dl=document.getElementById('docsList'); dl.innerHTML='';
+  DOCS.forEach(d=>{
+    const esInst = d.user && (!d.ciclo || d.ciclo==='INST');
+    const div=document.createElement('div'); div.className='docItem';
+    div.innerHTML=`<span class="n" title="${d.name}">${esInst?'🏛️ ':''}${d.name}</span><span class="c">${d.nChunks} frag.</span><span class="x" title="Eliminar">✕</span>`;
+    if(d.user){
+      const sel=document.createElement('select'); sel.className='miniSel';
+      sel.title='Asignar este documento a un ciclo oficial del SNP o mantenerlo en la capa institucional';
+      [['INST','🏛️ Institucional'],['PP','Política Pública'],['PD','Planificación'],['PR','Programación'],['IP','Inversión'],['CI','Cooperación'],['PRB','Presupuesto'],['SE','Seguimiento y Eval.']]
+        .forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o);});
+      sel.value=(d.ciclo&&d.ciclo!=='INST')?d.ciclo:'INST';
+      sel.onchange=()=>asignarCiclo(d.key, sel.value);
+      div.insertBefore(sel, div.querySelector('.x'));
+    }
+    div.querySelector('.x').onclick=async()=>{await idbDelDoc(d.key);await cargarDesdeDB();};
+    dl.appendChild(div);
+  });
+  sincronizarCapaInstitucional();
+  d3.selectAll('.nodo circle').classed('cargado',false);
+  DOCS.forEach(d=>{ if(d.nodeId) d3.select('.circ-'+d.nodeId).classed('cargado',true); });
+}
+async function asignarCiclo(key, ciclo){
+  const doc=DOCS.find(d=>d.key===key); if(!doc) return;
+  doc.ciclo=ciclo;
+  await idbPut('docs',[doc]);
+  await cargarDesdeDB();
+}
+async function cargarDesdeDB(){
+  const raw=await idbAll('chunks');
+  CHUNKS=raw.map(c=>({...c, vec:new Float32Array(c.vec)}));
+  DOCS=await idbAll('docs');
+  refrescarUI();
+}
+
+/* ---------- conexión con Ollama ---------- */
+let MODELOS=[];
+async function checarConexion(){
+  const conn=document.getElementById('conn'), txt=document.getElementById('connTxt'), sel=document.getElementById('modelo');
+  try{
+    const r=await fetch(OLLAMA+'/api/tags'); const j=await r.json();
+    MODELOS=(j.models||[]).map(m=>m.name);
+    const llms=MODELOS.filter(m=>!m.includes('embed'));
+    const tieneEmbed=MODELOS.some(m=>m.includes(EMBED_MODEL));
+    const previo=sel.value;
+    sel.innerHTML=llms.map(m=>`<option>${m}</option>`).join('')||'<option>— sin modelos —</option>';
+    if(previo&&llms.includes(previo)) sel.value=previo;
+    else{const pref=llms.find(m=>m.startsWith('llama3.2'))||llms[0]; if(pref) sel.value=pref;}
+    if(!llms.length||!tieneEmbed){
+      conn.className='bad';
+      txt.textContent=!llms.length?'Ollama activo · falta modelo LLM':'Ollama activo · falta nomic-embed-text';
+      document.getElementById('setup').classList.add('show');
+    }else{
+      conn.className='ok'; txt.textContent='Modelo local activo · sin conexión externa';
+      document.getElementById('setup').classList.remove('show');
+    }
+    return llms.length>0&&tieneEmbed;
+  }catch(e){
+    conn.className='bad'; txt.textContent='Sin conexión con Ollama';
+    document.getElementById('setup').classList.add('show');
+    return false;
+  }
+}
+document.getElementById('cerrarSetup').onclick=()=>document.getElementById('setup').classList.remove('show');
+document.getElementById('verSetup').onclick=()=>document.getElementById('setup').classList.add('show');
+
+/* ---------- procesamiento de documentos ---------- */
+async function extraerTexto(file){
+  if(file.name.toLowerCase().endsWith('.pdf')){
+    const buf=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    let out=[];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const tc=await page.getTextContent();
+      out.push({pag:p, txt:tc.items.map(i=>i.str).join(' ')});
+    }
+    return out;
+  }
+  const txt=await file.text();
+  return [{pag:null, txt}];
+}
+function fragmentar(paginas){
+  const frags=[]; const TAM=1100, SOLAPE=180;
+  for(const {pag,txt} of paginas){
+    const limpio=txt.replace(/\s+/g,' ').trim();
+    for(let i=0;i<limpio.length;i+=TAM-SOLAPE){
+      const f=limpio.slice(i,i+TAM);
+      if(f.length>120) frags.push({pag, text:f});
+      if(i+TAM>=limpio.length) break;
+    }
+  }
+  return frags;
+}
+async function embed(texto){
+  const r=await fetch(OLLAMA+'/api/embeddings',{method:'POST',
+    body:JSON.stringify({model:EMBED_MODEL, prompt:texto})});
+  if(!r.ok) throw new Error('Error de embeddings: '+r.status);
+  const j=await r.json(); return new Float32Array(j.embedding);
+}
+
+async function procesarArchivos(files){
+  if(!await checarConexion()){return;}
+  const prog=document.getElementById('prog'), bar=document.getElementById('progBar'), pt=document.getElementById('progTxt');
+  prog.style.display='block'; pt.style.display='block';
+  for(const file of files){
+    const key=norm(file.name);
+    if(DOCS.some(d=>d.key===key)){ pt.textContent=file.name+' ya está cargado, se omite.'; continue; }
+    pt.textContent='Extrayendo texto de '+file.name+'…'; bar.style.width='3%';
+    let paginas;
+    try{ paginas=await extraerTexto(file); }
+    catch(e){ pt.textContent='No se pudo leer '+file.name; continue; }
+    const frags=fragmentar(paginas);
+    if(!frags.length){ pt.textContent=file.name+': sin texto extraíble (¿PDF escaneado sin OCR?)'; continue; }
+    const nodo=matchDoc(file.name);
+    const esPropio=!nodo;
+    const nodeId=nodo?nodo.id:'u_'+key;
+    const nuevos=[];
+    for(let i=0;i<frags.length;i++){
+      pt.textContent=`Vectorizando ${file.name} · fragmento ${i+1} de ${frags.length}`;
+      bar.style.width=Math.round(5+90*(i+1)/frags.length)+'%';
+      try{
+        const vec=await embed(frags[i].text);
+        nuevos.push({id:key+'#'+i, docKey:key, docName:file.name, nodeId:nodeId,
+                     pag:frags[i].pag, text:frags[i].text, vec:Array.from(vec)});
+      }catch(e){ pt.textContent='Error al vectorizar; verifique Ollama.'; return; }
+    }
+    await idbPut('chunks', nuevos);
+    await idbPut('docs', [{key, name:file.name, nodeId:nodeId, user:esPropio, nChunks:nuevos.length}]);
+    await cargarDesdeDB();
+  }
+  bar.style.width='100%'; pt.textContent='Listo: '+CHUNKS.length+' fragmentos vectorizados en este equipo.';
+  setTimeout(()=>{prog.style.display='none';pt.style.display='none';bar.style.width='0';},3500);
+}
+
+const drop=document.getElementById('drop'), fi=document.getElementById('fileInput');
+drop.onclick=()=>fi.click();
+fi.onchange=()=>procesarArchivos([...fi.files]);
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('over');};
+drop.ondragleave=()=>drop.classList.remove('over');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');procesarArchivos([...e.dataTransfer.files]);};
+document.getElementById('borrarTodo').onclick=async()=>{
+  if(confirm('¿Eliminar todos los documentos vectorizados de este equipo?')){await idbClear();await cargarDesdeDB();}
+};
+
+/* ---------- exportar / importar contexto vectorizado ---------- */
+async function exportarCorpus(){
+  if(!CHUNKS.length){ alert('No hay documentos que exportar. Cargue documentos primero.'); return; }
+  const pt=document.getElementById('progTxt'); pt.style.display='block';
+  pt.textContent='Preparando exportación…';
+  const data={
+    formato:'copiloto-snp-corpus', version:1,
+    modeloEmbeddings:EMBED_MODEL, fecha:new Date().toISOString(),
+    docs:DOCS,
+    chunks:CHUNKS.map(c=>({id:c.id, docKey:c.docKey, docName:c.docName, nodeId:c.nodeId,
+                           pag:c.pag, text:c.text, vec:Array.from(c.vec)}))
+  };
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='corpus_vectorizado.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  pt.textContent='Contexto exportado ('+DOCS.length+' documentos, '+CHUNKS.length+' fragmentos). Copie el archivo a la USB (carpeta 3_Corpus_SNP).';
+  setTimeout(()=>{pt.style.display='none';},6000);
+}
+async function importarCorpus(file){
+  const pt=document.getElementById('progTxt'); pt.style.display='block';
+  pt.textContent='Leyendo contexto vectorizado…';
+  try{
+    const data=JSON.parse(await file.text());
+    if(data.formato!=='copiloto-snp-corpus'||!Array.isArray(data.chunks)) throw new Error('formato no reconocido');
+    if(data.modeloEmbeddings && data.modeloEmbeddings!==EMBED_MODEL)
+      pt.textContent='Aviso: el contexto fue vectorizado con otro modelo ('+data.modeloEmbeddings+').';
+    const existentes=new Set(DOCS.map(d=>d.key));
+    const docsNuevos=(data.docs||[]).filter(d=>!existentes.has(d.key));
+    const clavesNuevas=new Set(docsNuevos.map(d=>d.key));
+    const chunksNuevos=data.chunks.filter(c=>clavesNuevas.has(c.docKey));
+    if(!docsNuevos.length){ pt.textContent='Todos los documentos del archivo ya están cargados.'; setTimeout(()=>{pt.style.display='none';},4000); return; }
+    pt.textContent='Importando '+docsNuevos.length+' documentos ('+chunksNuevos.length+' fragmentos)…';
+    const LOTE=400;
+    for(let i=0;i<chunksNuevos.length;i+=LOTE){ await idbPut('chunks', chunksNuevos.slice(i,i+LOTE)); }
+    await idbPut('docs', docsNuevos);
+    await cargarDesdeDB();
+    pt.textContent='Contexto importado: '+docsNuevos.length+' documentos listos para consultar.';
+  }catch(e){ pt.textContent='No se pudo importar: '+e.message; }
+  setTimeout(()=>{pt.style.display='none';},6000);
+}
+document.getElementById('exportarBtn').onclick=exportarCorpus;
+const importInput=document.getElementById('importInput');
+document.getElementById('importarBtn').onclick=()=>importInput.click();
+importInput.onchange=()=>{ if(importInput.files[0]) importarCorpus(importInput.files[0]); importInput.value=''; };
+
+/* ---------- recuperación (coseno) ---------- */
+function coseno(a,b){let s=0,na=0,nb=0;for(let i=0;i<a.length;i++){s+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}return s/(Math.sqrt(na)*Math.sqrt(nb));}
+function topK(qvec,k=6){
+  return CHUNKS.map(c=>({c, s:coseno(qvec,c.vec)}))
+    .sort((x,y)=>y.s-x.s).slice(0,k);
+}
+
+/* ---------- resaltado copo de nieve ----------
+   Los documentos recuperados se conectan entre sí con aristas
+   temporales directas (ámbar). La ruta por S&E solo se enciende
+   cuando la recuperación cruza ciclos distintos o toca el propio
+   ciclo S&E — es decir, cuando la transversalidad es real. */
+let anillos=[];
+function resaltar(nodeIds){
+  limpiarResaltado();
+  if(!nodeIds.length) return;
+  const nds = nodeIds.map(id=>nodes.find(n=>n.id===id)).filter(Boolean);
+  if(!nds.length) return;
+  const ciclosUsados = new Set(nds.map(n=>n.ciclo).filter(Boolean));
+  const cruzaCiclos = ciclosUsados.size>1;
+  const tocaSE = ciclosUsados.has('SE');
+  const usarSE = cruzaCiclos || tocaSE;
+
+  const visibles = new Set(nds.map(n=>n.id));
+  ciclosUsados.forEach(c=>{ if(c!=='SE') visibles.add(c); });
+  if(usarSE) visibles.add('SE');
+
+  d3.selectAll('.nodo').classed('atenuado', d=>!visibles.has(d.id));
+  d3.selectAll('.arista').each(function(l){
+    const en = (l.tipo==='doc' && visibles.has(l.target.id) && nds.some(n=>n.id===l.target.id))
+            || (l.tipo==='trans' && usarSE && ciclosUsados.has(l.target.id));
+    d3.select(this).classed('ruta', en).classed('atenuado', !en);
+  });
+
+  /* aristas temporales directas entre documentos co-recuperados */
+  tempPairs=[];
+  for(let i=0;i<nds.length;i++)for(let j=i+1;j<nds.length;j++)tempPairs.push([nds[i],nds[j]]);
+  tempSel = tempG.selectAll('line').data(tempPairs).join('line').attr('class','arista-temp');
+  actualizarTemporales();
+
+  nds.forEach(n=>{
+    const a=g.append('circle').attr('class','anillo-pulso').attr('r',10);
+    anillos.push(a);
+    (function pulsar(){a.attr('cx',n.x).attr('cy',n.y).attr('r',10).attr('opacity',.9)
+      .transition().duration(1100).attr('r',30).attr('opacity',0).on('end',pulsar);})();
+  });
+}
+function limpiarResaltado(){
+  d3.selectAll('.nodo').classed('atenuado',false);
+  d3.selectAll('.arista').classed('ruta',false).classed('atenuado',false);
+  anillos.forEach(a=>a.interrupt().remove()); anillos=[];
+  tempPairs=[]; if(tempSel){tempSel.remove(); tempSel=null;}
+  tempG.selectAll('line').remove();
+}
+
+/* ---------- chat ---------- */
+const msgs=document.getElementById('msgs'), q=document.getElementById('q'), btn=document.getElementById('enviar');
+function addMsg(cls,html){const d=document.createElement('div');d.className='msg '+cls;d.innerHTML=html;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d;}
+let ocupado=false;
+
+document.getElementById('limpiarBtn').onclick=()=>{
+  msgs.innerHTML='<div class="msg sys">Conversación limpia. Sus documentos siguen cargados y listos.</div>';
+  limpiarResaltado();
+};
+
+async function preguntar(){
+  const texto=q.value.trim(); if(!texto||ocupado)return;
+  if(!await checarConexion())return;
+  if(!CHUNKS.length){addMsg('sys','Primero cargue o importe al menos un documento.');return;}
+  ocupado=true; btn.disabled=true; q.value='';
+  addMsg('u',texto.replace(/</g,'&lt;'));
+  const pensando=addMsg('sys','Buscando en sus documentos de contexto…');
+  try{
+    const qvec=await embed(texto);
+    const top=topK(qvec,6);
+    const nodeIds=[...new Set(top.map(t=>t.c.nodeId).filter(Boolean))];
+    resaltar(nodeIds);
+    pensando.textContent='Generando respuesta con el modelo local…';
+
+    const contexto=top.map((t,i)=>`[Fragmento ${i+1} — ${t.c.docName}${t.c.pag?', pág. '+t.c.pag:''}]\n${t.c.text}`).join('\n\n');
+    const sistema='Eres un asistente técnico del Sistema Nacional de Planificación (SNP) de Guatemala, al servicio de SEGEPLAN. Responde en español, de forma clara y precisa, ÚNICAMENTE con base en los fragmentos proporcionados. Cita siempre el documento fuente (y página si está disponible). Si la información no está en los fragmentos, indícalo honestamente y no inventes.';
+    const usuario='FRAGMENTOS RECUPERADOS:\n\n'+contexto+'\n\nPREGUNTA: '+texto;
+
+    const r=await fetch(OLLAMA+'/api/chat',{method:'POST',body:JSON.stringify({
+      model:document.getElementById('modelo').value,
+      messages:[{role:'system',content:sistema},{role:'user',content:usuario}],
+      stream:true, options:{temperature:0.2}
+    })});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    pensando.remove();
+    const burbuja=addMsg('a','');
+    const reader=r.body.getReader(); const dec=new TextDecoder(); let buf='', acum='';
+    while(true){
+      const {done,value}=await reader.read(); if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      let i;
+      while((i=buf.indexOf('\n'))>=0){
+        const line=buf.slice(0,i).trim(); buf=buf.slice(i+1);
+        if(!line)continue;
+        try{const j=JSON.parse(line); if(j.message&&j.message.content){acum+=j.message.content;
+          burbuja.textContent=acum; msgs.scrollTop=msgs.scrollHeight;}}catch(e){}
+      }
+    }
+    const fuentes=[...new Set(top.map(t=>t.c.docName+(t.c.pag?' (pág. '+t.c.pag+')':'')))];
+    const f=document.createElement('div'); f.className='fuentes';
+    f.textContent='Fuentes consultadas: '+fuentes.join(' · ');
+    burbuja.appendChild(f);
+  }catch(e){
+    pensando.textContent='Error: '+e.message+'. Verifique que Ollama esté en ejecución (botón Configuración).';
+  }
+  ocupado=false; btn.disabled=false;
+}
+btn.onclick=preguntar;
+q.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();preguntar();}});
+
+/* ---------- inicio ---------- */
+(async()=>{ await cargarDesdeDB(); await checarConexion(); setInterval(checarConexion, 20000); })();
+
+</script>
+</body>
+</html>
