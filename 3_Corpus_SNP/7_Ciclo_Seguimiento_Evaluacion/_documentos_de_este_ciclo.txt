@@ -1,0 +1,7 @@
+Colocar en esta carpeta los siguientes documentos oficiales (PDF con texto seleccionable):
+
+  · 10_Guia_basica_para_la_construccion_de_indicadores.pdf
+  · Desplegable-SNP-4.pdf
+
+Nota: verificar que ningún PDF sea un escaneo sin OCR.
+El participante los cargará arrastrándolos a la aplicación.
