@@ -1,0 +1,11 @@
+# ── Binarios pesados: NO se versionan (van por USB o descarga directa) ──
+1_Instaladores/*.exe
+2_Modelos_IA/models/
+corpus_vectorizado.json
+*.zip
+
+# ── Temporales y sistema ──
+Thumbs.db
+desktop.ini
+*.log
+node_modules/
