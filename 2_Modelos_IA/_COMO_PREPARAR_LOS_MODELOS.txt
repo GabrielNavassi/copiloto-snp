@@ -1,0 +1,20 @@
+INSTRUCCIONES PARA LA DSI — Modelos de IA (descarga única)
+============================================================
+Los modelos se descargan UNA VEZ en un equipo con internet y luego
+se copian a esta USB para distribuirlos sin conexión:
+
+  1. Instalar Ollama en el equipo de preparación.
+  2. Abrir cmd y ejecutar:
+        ollama pull llama3.2:3b
+        ollama pull nomic-embed-text
+     (opcional, para equipos con 16 GB de RAM:  ollama pull llama3.1:8b)
+  3. Localizar la carpeta de modelos del equipo:
+        %USERPROFILE%\.ollama\models
+     (ej.: C:\Users\SuUsuario\.ollama\models)
+  4. Copiar la carpeta "models" COMPLETA (subcarpetas blobs y manifests)
+     dentro de esta carpeta (2_Modelos_IA), quedando:
+        2_Modelos_IA\models\blobs\...
+        2_Modelos_IA\models\manifests\...
+
+Tamaño aproximado: llama3.2:3b ≈ 2.0 GB · nomic-embed-text ≈ 0.3 GB
+El script INSTALAR.bat copiará esta carpeta al equipo del participante.
