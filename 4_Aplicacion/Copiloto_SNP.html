@@ -70,7 +70,11 @@
   #msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-height:0;padding:2px}
   .msg{max-width:92%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
   .msg.u{align-self:flex-end;background:var(--azul-oscuro);border:1px solid var(--azul);border-bottom-right-radius:3px}
-  .msg.a{align-self:flex-start;background:var(--panel2);border:1px solid #2c3a6b;border-bottom-left-radius:3px}
+  .msg.a{align-self:flex-start;background:var(--panel2);border:1px solid #2c3a6b;border-bottom-left-radius:3px;white-space:normal}
+  .msg.a ul,.msg.a ol{margin:4px 0 6px 20px}
+  .msg.a li{margin-bottom:3px}
+  .msg.a b{color:#fff}
+  .msg.a code{background:#0a1020;border:1px solid #2c3a6b;border-radius:4px;padding:0 5px;font-family:Consolas,monospace;font-size:12px;color:var(--verde)}
   .msg.a .fuentes{margin-top:8px;padding-top:7px;border-top:1px solid #2c3a6b;font-size:10.5px;color:var(--amarillo)}
   .msg.sys{align-self:center;background:transparent;color:#7e8cb0;font-size:11.5px;text-align:center;font-style:italic}
   #entrada{display:flex;gap:8px;padding-top:10px;flex-shrink:0}
@@ -635,9 +639,23 @@ importInput.onchange=()=>{ if(importInput.files[0]) importarCorpus(importInput.f
 
 /* ---------- recuperación (coseno) ---------- */
 function coseno(a,b){let s=0,na=0,nb=0;for(let i=0;i<a.length;i++){s+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}return s/(Math.sqrt(na)*Math.sqrt(nb));}
-function topK(qvec,k=6){
-  return CHUNKS.map(c=>({c, s:coseno(qvec,c.vec)}))
-    .sort((x,y)=>y.s-x.s).slice(0,k);
+function seleccionarFragmentos(qvec){
+  /* Más candidatos, descarte de baja relevancia (diluyen el contexto)
+     y tope por documento para dar diversidad de fuentes. */
+  const cand = CHUNKS.map(c=>({c, s:coseno(qvec,c.vec)}))
+    .sort((x,y)=>y.s-x.s).slice(0,12);
+  if(!cand.length) return [];
+  const umbral = Math.max(0.35, cand[0].s-0.18);
+  const porDoc = {}; const sel = [];
+  for(const t of cand){
+    if(sel.length>=8) break;
+    if(t.s<umbral && sel.length>=3) break;
+    porDoc[t.c.docKey]=(porDoc[t.c.docKey]||0);
+    if(porDoc[t.c.docKey]>=4) continue;
+    porDoc[t.c.docKey]++;
+    sel.push(t);
+  }
+  return sel;
 }
 
 /* ---------- resaltado copo de nieve ----------
@@ -690,11 +708,27 @@ function limpiarResaltado(){
 
 /* ---------- chat ---------- */
 const msgs=document.getElementById('msgs'), q=document.getElementById('q'), btn=document.getElementById('enviar');
+function md(t){
+  let h=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h=h.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+  h=h.replace(/`([^`]+)`/g,'<code>$1</code>');
+  h=h.replace(/(?:^|\n)((?:[-\u2022*] .*(?:\n|$))+)/g, m=>{
+    const items=m.trim().split(/\n/).map(l=>'<li>'+l.replace(/^[-\u2022*] /,'')+'</li>').join('');
+    return '\n<ul>'+items+'</ul>';});
+  h=h.replace(/(?:^|\n)((?:\d+[.)] .*(?:\n|$))+)/g, m=>{
+    const items=m.trim().split(/\n/).map(l=>'<li>'+l.replace(/^\d+[.)] /,'')+'</li>').join('');
+    return '\n<ol>'+items+'</ol>';});
+  h=h.replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
+  return h;
+}
 function addMsg(cls,html){const d=document.createElement('div');d.className='msg '+cls;d.innerHTML=html;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d;}
 let ocupado=false;
+let HISTORIAL=[];
+let ULTIMA_PREGUNTA='';
 
 document.getElementById('limpiarBtn').onclick=()=>{
-  msgs.innerHTML='<div class="msg sys">Conversación limpia. Sus documentos siguen cargados y listos.</div>';
+  msgs.innerHTML='<div class="msg sys">Conversaci\u00f3n limpia. Sus documentos siguen cargados y listos.</div>';
+  HISTORIAL=[]; ULTIMA_PREGUNTA='';
   limpiarResaltado();
 };
 
@@ -704,22 +738,28 @@ async function preguntar(){
   if(!CHUNKS.length){addMsg('sys','Primero cargue o importe al menos un documento.');return;}
   ocupado=true; btn.disabled=true; q.value='';
   addMsg('u',texto.replace(/</g,'&lt;'));
-  const pensando=addMsg('sys','Buscando en sus documentos de contexto…');
+  const pensando=addMsg('sys','Buscando en sus documentos de contexto\u2026');
   try{
-    const qvec=await embed(texto);
-    const top=topK(qvec,6);
+    const esSeguimiento = ULTIMA_PREGUNTA && (texto.length<60 ||
+      /^(y |pero |ampl|expl[i\u00ed]ca|detalla|dame|resume|por ?qu[e\u00e9]|c[o\u00f3]mo|entonces|eso|esa|ese|el punto|la parte)/i.test(texto));
+    const consultaRecup = esSeguimiento ? (ULTIMA_PREGUNTA+' '+texto) : texto;
+
+    const qvec=await embed(consultaRecup);
+    const top=seleccionarFragmentos(qvec);
+    if(!top.length){ pensando.textContent='No se encontraron fragmentos relevantes para esta consulta.'; ocupado=false; btn.disabled=false; return; }
     const nodeIds=[...new Set(top.map(t=>t.c.nodeId).filter(Boolean))];
     resaltar(nodeIds);
-    pensando.textContent='Generando respuesta con el modelo local…';
+    pensando.textContent='Generando respuesta con el modelo local\u2026';
 
-    const contexto=top.map((t,i)=>`[Fragmento ${i+1} — ${t.c.docName}${t.c.pag?', pág. '+t.c.pag:''}]\n${t.c.text}`).join('\n\n');
-    const sistema='Eres un asistente técnico del Sistema Nacional de Planificación (SNP) de Guatemala, al servicio de SEGEPLAN. Responde en español, de forma clara y precisa, ÚNICAMENTE con base en los fragmentos proporcionados. Cita siempre el documento fuente (y página si está disponible). Si la información no está en los fragmentos, indícalo honestamente y no inventes.';
+    const contexto=top.map((t,i)=>`[Fragmento ${i+1} \u2014 ${t.c.docName}${t.c.pag?', p\u00e1g. '+t.c.pag:''}]\n${t.c.text}`).join('\n\n');
+    const sistema='Eres el Copiloto SNP, asistente t\u00e9cnico del Sistema Nacional de Planificaci\u00f3n (SNP) de Guatemala, al servicio de SEGEPLAN. Reglas estrictas: (1) Responde en espa\u00f1ol claro y profesional. (2) Fundamenta TODO \u00fanicamente en los fragmentos proporcionados; si la informaci\u00f3n solicitada no est\u00e1 en ellos, dilo expl\u00edcitamente y no inventes. (3) Cada vez que uses informaci\u00f3n de un fragmento, cita la fuente en el texto con el formato (Documento, p\u00e1g. N). (4) Estructura: comienza con la respuesta directa en 1 o 2 oraciones; luego desarrolla los detalles; usa listas con guiones cuando enumeres pasos, requisitos o criterios. (5) Si la pregunta da seguimiento a la conversaci\u00f3n previa, mant\u00e9n la coherencia con lo ya dicho.';
     const usuario='FRAGMENTOS RECUPERADOS:\n\n'+contexto+'\n\nPREGUNTA: '+texto;
 
     const r=await fetch(OLLAMA+'/api/chat',{method:'POST',body:JSON.stringify({
       model:document.getElementById('modelo').value,
-      messages:[{role:'system',content:sistema},{role:'user',content:usuario}],
-      stream:true, options:{temperature:0.2}
+      messages:[{role:'system',content:sistema},...HISTORIAL.slice(-4),{role:'user',content:usuario}],
+      stream:true,
+      options:{temperature:0.2, num_ctx:8192, num_predict:1024}
     })});
     if(!r.ok) throw new Error('HTTP '+r.status);
     pensando.remove();
@@ -733,15 +773,19 @@ async function preguntar(){
         const line=buf.slice(0,i).trim(); buf=buf.slice(i+1);
         if(!line)continue;
         try{const j=JSON.parse(line); if(j.message&&j.message.content){acum+=j.message.content;
-          burbuja.textContent=acum; msgs.scrollTop=msgs.scrollHeight;}}catch(e){}
+          burbuja.innerHTML=md(acum); msgs.scrollTop=msgs.scrollHeight;}}catch(e){}
       }
     }
-    const fuentes=[...new Set(top.map(t=>t.c.docName+(t.c.pag?' (pág. '+t.c.pag+')':'')))];
+    const fuentes=[...new Set(top.map(t=>t.c.docName+(t.c.pag?' (p\u00e1g. '+t.c.pag+')':'')))];
     const f=document.createElement('div'); f.className='fuentes';
-    f.textContent='Fuentes consultadas: '+fuentes.join(' · ');
+    f.textContent='Fuentes consultadas: '+fuentes.join(' \u00b7 ');
     burbuja.appendChild(f);
+
+    ULTIMA_PREGUNTA=texto;
+    HISTORIAL.push({role:'user',content:texto},{role:'assistant',content:acum});
+    if(HISTORIAL.length>6) HISTORIAL=HISTORIAL.slice(-6);
   }catch(e){
-    pensando.textContent='Error: '+e.message+'. Verifique que Ollama esté en ejecución (botón Configuración).';
+    pensando.textContent='Error: '+e.message+'. Verifique que Ollama est\u00e9 en ejecuci\u00f3n (bot\u00f3n Configuraci\u00f3n).';
   }
   ocupado=false; btn.disabled=false;
 }
